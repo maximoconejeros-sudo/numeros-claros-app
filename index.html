@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1F3B24">
+<title>Números Claros</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B2A1E; --paper:#EFE3C8; --paper-alt:#E4D3A8; --cream:#FBF6EA;
+    --green:#2F5233; --green-deep:#1F3B24; --brass:#A8792F; --brass-light:#C9A45C;
+    --rust:#9C4331; --purple:#6B5B95; --line:rgba(27,42,30,0.14);
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%; overscroll-behavior:none;}
+  body{ background:var(--paper); color:var(--ink); font-family:'Inter',sans-serif; padding-bottom:78px; padding-top:env(safe-area-inset-top); }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  h1,h2,h3{font-family:'Fraunces',serif; font-weight:600;}
+  button{font-family:inherit; cursor:pointer;}
+
+  /* ---------- TOP BAR ---------- */
+  .topbar{ position:sticky; top:0; z-index:40; background:var(--green-deep); color:var(--cream); padding:16px 18px calc(14px + env(safe-area-inset-top,0px)); display:flex; align-items:center; justify-content:space-between; }
+  .topbar h1{ font-size:19px; }
+  .topbar .streak{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--brass-light); }
+
+  /* ---------- VIEWS ---------- */
+  .view{ display:none; padding:18px; animation: fade .3s ease; }
+  .view.active{ display:block; }
+  @keyframes fade{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  /* ---------- CARDS ---------- */
+  .card{ background:var(--cream); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:14px; }
+  .card h3{ font-size:15px; color:var(--green-deep); margin-bottom:10px; }
+
+  .summary-card{ background:var(--green-deep); color:var(--paper); border-radius:12px; padding:20px; margin-bottom:16px; }
+  .summary-card .lbl{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; opacity:.65; }
+  .summary-card .big{ font-family:'IBM Plex Mono',monospace; font-size:30px; font-weight:600; margin-top:4px; }
+  .summary-row{ display:flex; justify-content:space-between; margin-top:14px; padding-top:14px; border-top:1px solid rgba(239,227,200,0.15); font-size:12.5px; }
+  .summary-row .v{ font-family:'IBM Plex Mono',monospace; font-weight:600; }
+  .v.pos{ color:#9ED6A3; } .v.neg{ color:#E39383; }
+
+  /* mini envelope bars */
+  .mini-env{ margin-bottom:12px; }
+  .mini-env .top{ display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:5px; }
+  .mini-env .top .name{ font-weight:600; display:flex; align-items:center; gap:6px; }
+  .mini-env .top .sw{ width:8px; height:8px; border-radius:50%; }
+  .track{ height:10px; background:rgba(27,42,30,0.08); border-radius:5px; overflow:hidden; }
+  .fill{ height:100%; border-radius:5px; transition:width .6s cubic-bezier(.2,.8,.2,1); }
+
+  /* quick add fab */
+  .fab{ position:fixed; bottom:88px; right:18px; width:56px; height:56px; border-radius:50%; background:var(--brass); color:var(--cream); border:none; font-size:26px; box-shadow:0 6px 16px rgba(27,42,30,0.25); z-index:45; display:flex; align-items:center; justify-content:center; }
+
+  /* ---------- TAB BAR ---------- */
+  .tabbar{ position:fixed; bottom:0; left:0; right:0; background:var(--cream); border-top:1px solid var(--line); display:flex; z-index:50; padding-bottom:env(safe-area-inset-bottom,0px); }
+  .tabbtn{ flex:1; background:none; border:none; padding:10px 4px 8px; display:flex; flex-direction:column; align-items:center; gap:3px; color:rgba(27,42,30,0.45); }
+  .tabbtn.active{ color:var(--green-deep); }
+  .tabbtn svg{ width:22px; height:22px; }
+  .tabbtn .tlabel{ font-family:'IBM Plex Mono',monospace; font-size:9.5px; text-transform:uppercase; letter-spacing:.03em; }
+
+  /* ---------- FORMS ---------- */
+  label{ display:block; font-family:'IBM Plex Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:rgba(27,42,30,0.6); margin-bottom:6px; margin-top:14px; }
+  label:first-of-type{ margin-top:0; }
+  input[type=number], input[type=text], input[type=date], select{
+    width:100%; border:2px solid var(--line); background:var(--paper); border-radius:6px; font-family:'Inter',sans-serif; font-size:15px; padding:11px 12px; color:var(--ink);
+  }
+  input:focus, select:focus{ outline:none; border-color:var(--green); }
+  .btn{ width:100%; background:var(--green-deep); color:var(--cream); border:none; border-radius:6px; padding:13px; font-size:14.5px; font-weight:600; margin-top:18px; }
+  .btn.secondary{ background:transparent; border:2px solid var(--green-deep); color:var(--green-deep); }
+  .btn.danger{ background:var(--rust); }
+  .chip-row{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  .chip{ border:2px solid var(--line); background:var(--paper); border-radius:20px; padding:8px 14px; font-size:12.5px; font-weight:600; }
+  .chip.sel{ border-color:var(--green); background:rgba(47,82,51,0.1); color:var(--green-deep); }
+
+  /* transaction list */
+  .tx-day{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; text-transform:uppercase; color:rgba(27,42,30,0.5); margin:16px 0 8px; }
+  .tx-day:first-child{ margin-top:0; }
+  .tx-item{ display:flex; align-items:center; gap:12px; background:var(--cream); border:1px solid var(--line); border-radius:8px; padding:12px; margin-bottom:8px; }
+  .tx-dot{ width:10px; height:10px; border-radius:50%; flex:none; }
+  .tx-info{ flex:1; min-width:0; }
+  .tx-info .cat{ font-size:13.5px; font-weight:600; }
+  .tx-info .note{ font-size:11.5px; color:rgba(27,42,30,0.55); }
+  .tx-amount{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:14px; }
+  .tx-del{ background:none; border:none; color:var(--rust); font-size:18px; padding:4px 6px; }
+  .empty{ text-align:center; padding:40px 20px; color:rgba(27,42,30,0.5); font-size:13.5px; }
+
+  /* ---------- MODAL ---------- */
+  .modal-bg{ position:fixed; inset:0; background:rgba(27,42,30,0.5); z-index:60; display:none; align-items:flex-end; }
+  .modal-bg.show{ display:flex; }
+  .modal{ background:var(--paper); border-radius:16px 16px 0 0; padding:22px 20px calc(24px + env(safe-area-inset-bottom,0px)); width:100%; max-height:88vh; overflow-y:auto; animation:slideUp .3s ease; }
+  @keyframes slideUp{ from{transform:translateY(100%);} to{transform:translateY(0);} }
+  .modal h2{ font-size:19px; color:var(--green-deep); margin-bottom:4px; }
+  .modal-close{ position:absolute; top:16px; right:16px; background:none; border:none; font-size:20px; color:rgba(27,42,30,0.5); }
+
+  /* onboarding */
+  .onb{ position:fixed; inset:0; background:var(--paper); z-index:100; display:flex; flex-direction:column; padding:24px 22px calc(24px + env(safe-area-inset-bottom,0px)); overflow-y:auto; }
+  .onb-step{ display:none; flex:1; flex-direction:column; }
+  .onb-step.active{ display:flex; }
+  .onb h1{ font-size:26px; color:var(--green-deep); margin-bottom:8px; }
+  .onb p{ font-size:14px; color:rgba(27,42,30,0.75); margin-bottom:18px; }
+  .dots{ display:flex; gap:6px; justify-content:center; margin-bottom:20px; }
+  .dot-ind{ width:6px; height:6px; border-radius:50%; background:rgba(27,42,30,0.2); }
+  .dot-ind.active{ background:var(--brass); width:18px; border-radius:3px; }
+
+  /* donut reused */
+  .donut-wrap{ display:flex; flex-direction:column; align-items:center; gap:10px; margin:16px 0; }
+  .donut{ width:150px; height:150px; border-radius:50%; position:relative; }
+  .donut::before{ content:''; position:absolute; inset:20px; background:var(--paper); border-radius:50%; }
+  .donut-total{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; }
+  .donut-total .n{ font-family:'IBM Plex Mono',monospace; font-size:22px; font-weight:600; color:var(--green-deep); position:relative; z-index:2; }
+  .donut-total .l{ font-family:'IBM Plex Mono',monospace; font-size:9px; text-transform:uppercase; color:rgba(27,42,30,0.5); position:relative; z-index:2; }
+
+  /* course tab */
+  .lesson{ background:var(--cream); border:1px solid var(--line); border-radius:10px; margin-bottom:10px; overflow:hidden; }
+  .lesson-head{ padding:14px 16px; display:flex; align-items:center; gap:12px; cursor:pointer; }
+  .lesson-num{ font-family:'Fraunces',serif; font-size:20px; color:var(--brass); flex:none; width:28px; }
+  .lesson-title{ font-size:14px; font-weight:600; flex:1; }
+  .lesson-plus{ color:var(--brass); font-family:'IBM Plex Mono',monospace; transition:transform .3s ease; }
+  .lesson.open .lesson-plus{ transform:rotate(45deg); }
+  .lesson-body{ max-height:0; overflow:hidden; transition:max-height .35s ease; }
+  .lesson-body-inner{ padding:0 16px 16px 56px; font-size:13.5px; color:rgba(27,42,30,0.8); }
+
+  .install-banner{ background:var(--brass); color:var(--cream); border-radius:10px; padding:14px 16px; margin-bottom:16px; font-size:13px; display:none; align-items:center; gap:10px; }
+  .install-banner.show{ display:flex; }
+  .install-banner button{ background:var(--cream); color:var(--brass); border:none; border-radius:6px; padding:8px 12px; font-size:12px; font-weight:700; flex:none; }
+</style>
+</head>
+<body>
+
+<!-- ================= ONBOARDING ================= -->
+<div class="onb" id="onb">
+  <div class="onb-step active" id="onbStep1">
+    <div style="flex:1; display:flex; flex-direction:column; justify-content:center; text-align:center;">
+      <h1>Números Claros</h1>
+      <p>Tu calculadora personal para organizar los gastos, sobre el sistema de sobres digitales. Vamos a armar tu sistema en 3 pasos rápidos.</p>
+    </div>
+    <div class="dots"><span class="dot-ind active"></span><span class="dot-ind"></span><span class="dot-ind"></span></div>
+    <button class="btn" onclick="onbGo(2)">Empezar</button>
+  </div>
+
+  <div class="onb-step" id="onbStep2">
+    <h1 style="font-size:22px;">¿Cuál es tu ingreso mensual líquido?</h1>
+    <p>Lo que realmente te llega a la cuenta cada mes, después de descuentos.</p>
+    <label for="onbIncome">Ingreso mensual (CLP)</label>
+    <input type="number" id="onbIncome" placeholder="Ej: 850000" inputmode="numeric">
+    <div style="flex:1;"></div>
+    <div class="dots"><span class="dot-ind active"></span><span class="dot-ind active"></span><span class="dot-ind"></span></div>
+    <button class="btn" onclick="onbGo(3)">Continuar</button>
+  </div>
+
+  <div class="onb-step" id="onbStep3">
+    <h1 style="font-size:22px;">Arma tus sobres</h1>
+    <p>Ajusta cuánto de tu ingreso va a cada propósito. Debe sumar 100%.</p>
+    <div class="donut-wrap">
+      <div class="donut" id="onbDonut"><div class="donut-total"><span class="n" id="onbDonutTotal">100</span><span class="l">% asignado</span></div></div>
+    </div>
+    <div id="onbSliders"></div>
+    <p class="mono" id="onbAllocWarn" style="text-align:center; font-size:12px; color:var(--green-deep); margin-top:6px;">Suma 100% — perfecto.</p>
+    <div style="flex:1;"></div>
+    <div class="dots"><span class="dot-ind active"></span><span class="dot-ind active"></span><span class="dot-ind active"></span></div>
+    <button class="btn" onclick="finishOnboarding()">Crear mi sistema</button>
+  </div>
+</div>
+
+<!-- ================= APP ================= -->
+<div class="topbar">
+  <h1>Números Claros</h1>
+  <span class="streak mono" id="monthLabel">—</span>
+</div>
+
+<!-- INICIO -->
+<div class="view active" id="view-inicio">
+  <div class="install-banner" id="installBanner">
+    <span>📲 Puedes agregar esta app a tu pantalla de inicio.</span>
+    <button onclick="promptInstall()">Instalar</button>
+  </div>
+
+  <div class="summary-card">
+    <div class="lbl">Disponible este mes</div>
+    <div class="big mono" id="sumAvailable">$0</div>
+    <div class="summary-row">
+      <span>Ingreso <span class="v mono" id="sumIncome">$0</span></span>
+      <span>Gastado <span class="v mono" id="sumSpent">$0</span></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Tus sobres este mes</h3>
+    <div id="miniEnvelopes"></div>
+  </div>
+
+  <div class="card">
+    <h3>Últimos movimientos</h3>
+    <div id="recentTx"></div>
+  </div>
+</div>
+
+<!-- GASTOS -->
+<div class="view" id="view-gastos">
+  <h2 style="font-size:19px; margin-bottom:14px; color:var(--green-deep);">Movimientos de <span id="gastosMonthLabel"></span></h2>
+  <div id="txList"></div>
+</div>
+
+<!-- SOBRES -->
+<div class="view" id="view-sobres">
+  <h2 style="font-size:19px; margin-bottom:14px; color:var(--green-deep);">Tus sobres</h2>
+  <div id="envelopeDetail"></div>
+  <button class="btn secondary" onclick="openEditEnvelopes()">Ajustar porcentajes</button>
+</div>
+
+<!-- CURSO -->
+<div class="view" id="view-curso">
+  <h2 style="font-size:19px; margin-bottom:6px; color:var(--green-deep);">El método</h2>
+  <p style="font-size:13px; color:rgba(27,42,30,0.7); margin-bottom:16px;">Los 5 módulos del sistema, resumidos. Aplícalos con la calculadora de al lado.</p>
+  <div id="lessons"></div>
+</div>
+
+<!-- AJUSTES -->
+<div class="view" id="view-ajustes">
+  <h2 style="font-size:19px; margin-bottom:14px; color:var(--green-deep);">Ajustes</h2>
+  <div class="card">
+    <h3>Tu ingreso mensual</h3>
+    <label for="setIncome">Ingreso líquido (CLP)</label>
+    <input type="number" id="setIncome" inputmode="numeric">
+    <button class="btn" onclick="saveIncome()">Guardar</button>
+  </div>
+  <div class="card">
+    <h3>Colchón de emergencia</h3>
+    <label for="setCushion">Meses de colchón deseados</label>
+    <input type="number" id="setCushion" inputmode="numeric">
+    <div style="margin-top:10px; font-size:13px;">Meta: <span class="mono" id="cushionGoalOut" style="font-weight:600;">$0</span></div>
+    <button class="btn" onclick="saveCushion()">Guardar</button>
+  </div>
+  <div class="card">
+    <h3>Tus datos</h3>
+    <button class="btn secondary" onclick="exportData()">Exportar copia de seguridad</button>
+    <button class="btn danger" onclick="resetAll()">Borrar todo y reiniciar</button>
+  </div>
+</div>
+
+<!-- ================= TAB BAR ================= -->
+<div class="tabbar">
+  <button class="tabbtn active" data-view="inicio" onclick="switchView('inicio')">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M4 11 L12 4 L20 11 V20 H4 Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+    <span class="tlabel">Inicio</span>
+  </button>
+  <button class="tabbtn" data-view="gastos" onclick="switchView('gastos')">
+    <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M4 10 H20" stroke="currentColor" stroke-width="2"/></svg>
+    <span class="tlabel">Gastos</span>
+  </button>
+  <button class="tabbtn" data-view="sobres" onclick="switchView('sobres')">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M4 8 L12 13 L20 8" stroke="currentColor" stroke-width="2"/><rect x="4" y="7" width="16" height="12" rx="1.5" stroke="currentColor" stroke-width="2"/></svg>
+    <span class="tlabel">Sobres</span>
+  </button>
+  <button class="tabbtn" data-view="curso" onclick="switchView('curso')">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M4 6 C7 4 10 4 12 6 C14 4 17 4 20 6 V18 C17 16 14 16 12 18 C10 16 7 16 4 18 Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+    <span class="tlabel">Curso</span>
+  </button>
+  <button class="tabbtn" data-view="ajustes" onclick="switchView('ajustes')">
+    <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M12 3 V6 M12 18 V21 M3 12 H6 M18 12 H21 M5.6 5.6 L7.8 7.8 M16.2 16.2 L18.4 18.4 M18.4 5.6 L16.2 7.8 M7.8 16.2 L5.6 18.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <span class="tlabel">Ajustes</span>
+  </button>
+</div>
+
+<button class="fab" onclick="openAddTx()">+</button>
+
+<!-- ================= ADD TX MODAL ================= -->
+<div class="modal-bg" id="txModalBg">
+  <div class="modal" style="position:relative;">
+    <button class="modal-close" onclick="closeModal('txModalBg')">✕</button>
+    <h2>Nuevo gasto</h2>
+    <label>Monto</label>
+    <input type="number" id="txAmount" placeholder="0" inputmode="numeric">
+    <label>Sobre</label>
+    <div class="chip-row" id="txEnvChips"></div>
+    <label>Categoría</label>
+    <select id="txCategory"></select>
+    <label>Fecha</label>
+    <input type="date" id="txDate">
+    <label>Nota (opcional)</label>
+    <input type="text" id="txNote" placeholder="Ej: Supermercado Lider">
+    <button class="btn" onclick="saveTx()">Guardar gasto</button>
+  </div>
+</div>
+
+<!-- ================= EDIT ENVELOPES MODAL ================= -->
+<div class="modal-bg" id="envModalBg">
+  <div class="modal" style="position:relative;">
+    <button class="modal-close" onclick="closeModal('envModalBg')">✕</button>
+    <h2>Ajustar sobres</h2>
+    <div class="donut-wrap">
+      <div class="donut" id="editDonut"><div class="donut-total"><span class="n" id="editDonutTotal">100</span><span class="l">% asignado</span></div></div>
+    </div>
+    <div id="editSliders"></div>
+    <p class="mono" id="editAllocWarn" style="text-align:center; font-size:12px; margin-top:6px;"></p>
+    <button class="btn" onclick="saveEnvelopes()">Guardar</button>
+  </div>
+</div>
+
+<script>
+/* ===================== DATA LAYER ===================== */
+const ENV_DEFS = [
+  {k:'esenciales', name:'Esenciales', color:'#2F5233', cats:['Vivienda/arriendo','Comida y supermercado','Transporte','Cuentas y servicios','Salud']},
+  {k:'ahorro', name:'Ahorro', color:'#A8792F', cats:['Colchón de emergencia','Meta de ahorro']},
+  {k:'deudas', name:'Deudas', color:'#9C4331', cats:['Tarjeta de crédito','Préstamo','Otra deuda']},
+  {k:'disfrute', name:'Disfrute', color:'#6B5B95', cats:['Delivery y salidas','Entretenimiento','Compras','Otro']},
+];
+const DEFAULT_PCT = {esenciales:50, ahorro:20, deudas:15, disfrute:15};
+
+function loadSetup(){ try{ return JSON.parse(localStorage.getItem('nc_setup')); }catch(e){ return null; } }
+function saveSetup(s){ localStorage.setItem('nc_setup', JSON.stringify(s)); }
+function loadTx(){ try{ return JSON.parse(localStorage.getItem('nc_tx')) || []; }catch(e){ return []; } }
+function saveTxList(list){ localStorage.setItem('nc_tx', JSON.stringify(list)); }
+
+function fmt(n){ return '$' + Math.round(n||0).toLocaleString('es-CL'); }
+function monthKey(d){ const dt = d?new Date(d):new Date(); return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0'); }
+function monthLabelStr(){ const dt = new Date(); return dt.toLocaleDateString('es-CL',{month:'long', year:'numeric'}); }
+
+let setup = loadSetup();
+let txList = loadTx();
+
+/* ===================== ONBOARDING ===================== */
+function onbGo(step){
+  document.querySelectorAll('.onb-step').forEach(s=>s.classList.remove('active'));
+  document.getElementById('onbStep'+step).classList.add('active');
+  if(step===3) renderOnbSliders();
+}
+let onbPct = {...DEFAULT_PCT};
+function renderOnbSliders(){
+  const box = document.getElementById('onbSliders');
+  box.innerHTML = ENV_DEFS.map(e=>`
+    <div class="slider-item" style="margin-bottom:14px;">
+      <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:13.5px; font-weight:600;">
+        <span style="display:flex; align-items:center; gap:8px;"><i style="width:10px;height:10px;border-radius:50%;background:${e.color};display:inline-block;"></i>${e.name}</span>
+        <span class="mono" id="onbVal-${e.k}">${onbPct[e.k]}%</span>
+      </div>
+      <input type="range" min="0" max="100" value="${onbPct[e.k]}" id="onbSl-${e.k}" style="width:100%; accent-color:${e.color};">
+    </div>
+  `).join('');
+  ENV_DEFS.forEach(e=>{
+    document.getElementById('onbSl-'+e.k).addEventListener('input', (ev)=>{
+      onbPct[e.k] = parseInt(ev.target.value);
+      document.getElementById('onbVal-'+e.k).textContent = onbPct[e.k]+'%';
+      updateDonut('onbDonut','onbDonutTotal', onbPct, 'onbAllocWarn');
+    });
+  });
+  updateDonut('onbDonut','onbDonutTotal', onbPct, 'onbAllocWarn');
+}
+function updateDonut(donutId, totalId, pct, warnId){
+  let sum = 0; ENV_DEFS.forEach(e=> sum += pct[e.k]);
+  document.getElementById(totalId).textContent = sum;
+  let acc = 0;
+  const stops = ENV_DEFS.map(e=>{
+    const start = acc; acc += (pct[e.k]/Math.max(sum,1))*360;
+    return e.color+' '+start.toFixed(1)+'deg '+acc.toFixed(1)+'deg';
+  });
+  document.getElementById(donutId).style.background = sum>0 ? `conic-gradient(${stops.join(',')})` : 'rgba(27,42,30,0.08)';
+  if(warnId){
+    const w = document.getElementById(warnId);
+    if(sum===100){ w.textContent='Suma 100% — perfecto.'; w.style.color='var(--green-deep)'; }
+    else if(sum>100){ w.textContent=`Te pasaste por ${sum-100} puntos.`; w.style.color='var(--rust)'; }
+    else { w.textContent=`Te faltan ${100-sum} puntos.`; w.style.color='var(--rust)'; }
+  }
+}
+function finishOnboarding(){
+  const income = parseFloat(document.getElementById('onbIncome').value) || 0;
+  setup = { income, pct: {...onbPct}, cushionMonths: 4, createdAt: Date.now() };
+  saveSetup(setup);
+  document.getElementById('onb').style.display = 'none';
+  initApp();
+}
+
+/* ===================== TAB SWITCHING ===================== */
+function switchView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.querySelectorAll('.tabbtn').forEach(b=>b.classList.toggle('active', b.dataset.view===name));
+  if(name==='gastos') renderTxList();
+  if(name==='sobres') renderEnvelopeDetail();
+}
+
+/* ===================== MODALS ===================== */
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+
+/* ===================== ADD TRANSACTION ===================== */
+let selectedEnv = 'esenciales';
+function openAddTx(){
+  document.getElementById('txAmount').value = '';
+  document.getElementById('txNote').value = '';
+  document.getElementById('txDate').value = new Date().toISOString().slice(0,10);
+  renderEnvChips();
+  renderCategorySelect();
+  openModal('txModalBg');
+}
+function renderEnvChips(){
+  const box = document.getElementById('txEnvChips');
+  box.innerHTML = ENV_DEFS.map(e=>`<button type="button" class="chip ${e.k===selectedEnv?'sel':''}" onclick="selectEnv('${e.k}')" style="${e.k===selectedEnv?`border-color:${e.color}; background:${e.color}22; color:${e.color};`:''}">${e.name}</button>`).join('');
+}
+function selectEnv(k){ selectedEnv = k; renderEnvChips(); renderCategorySelect(); }
+function renderCategorySelect(){
+  const def = ENV_DEFS.find(e=>e.k===selectedEnv);
+  document.getElementById('txCategory').innerHTML = def.cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+function saveTx(){
+  const amount = parseFloat(document.getElementById('txAmount').value) || 0;
+  if(amount<=0){ alert('Ingresa un monto válido.'); return; }
+  const tx = {
+    id: Date.now(),
+    amount, envelope: selectedEnv,
+    category: document.getElementById('txCategory').value,
+    date: document.getElementById('txDate').value || new Date().toISOString().slice(0,10),
+    note: document.getElementById('txNote').value || ''
+  };
+  txList.unshift(tx);
+  saveTxList(txList);
+  closeModal('txModalBg');
+  refreshAll();
+}
+function deleteTx(id){
+  txList = txList.filter(t=>t.id!==id);
+  saveTxList(txList);
+  refreshAll();
+}
+
+/* ===================== CALCS ===================== */
+function currentMonthTx(){ const mk = monthKey(); return txList.filter(t=> monthKey(t.date)===mk); }
+function spentByEnvelope(){
+  const out = {esenciales:0, ahorro:0, deudas:0, disfrute:0};
+  currentMonthTx().forEach(t=>{ out[t.envelope] = (out[t.envelope]||0) + t.amount; });
+  return out;
+}
+
+/* ===================== RENDER: INICIO ===================== */
+function renderInicio(){
+  document.getElementById('monthLabel').textContent = monthLabelStr();
+  const income = setup.income || 0;
+  const spent = spentByEnvelope();
+  const totalSpent = Object.values(spent).reduce((a,b)=>a+b,0);
+  document.getElementById('sumIncome').textContent = fmt(income);
+  document.getElementById('sumSpent').textContent = fmt(totalSpent);
+  document.getElementById('sumAvailable').textContent = fmt(Math.max(income-totalSpent,0));
+
+  const box = document.getElementById('miniEnvelopes');
+  box.innerHTML = ENV_DEFS.map(e=>{
+    const allocated = income * (setup.pct[e.k]/100);
+    const used = spent[e.k]||0;
+    const pct = allocated>0 ? Math.min((used/allocated)*100,100) : 0;
+    const over = used > allocated && allocated>0;
+    return `<div class="mini-env">
+      <div class="top"><span class="name"><i class="sw" style="background:${e.color};"></i>${e.name}</span><span class="mono">${fmt(used)} / ${fmt(allocated)}</span></div>
+      <div class="track"><div class="fill" style="width:${pct}%; background:${over?'#9C4331':e.color};"></div></div>
+    </div>`;
+  }).join('');
+
+  const recent = document.getElementById('recentTx');
+  const items = txList.slice(0,5);
+  recent.innerHTML = items.length ? items.map(t=>txRowHtml(t)).join('') : `<div class="empty">Aún no registras gastos. Toca el botón + para agregar el primero.</div>`;
+}
+
+function txRowHtml(t){
+  const def = ENV_DEFS.find(e=>e.k===t.envelope);
+  return `<div class="tx-item">
+    <div class="tx-dot" style="background:${def.color};"></div>
+    <div class="tx-info"><div class="cat">${t.category}</div><div class="note">${t.note || def.name}</div></div>
+    <div class="tx-amount">${fmt(t.amount)}</div>
+    <button class="tx-del" onclick="deleteTx(${t.id})">✕</button>
+  </div>`;
+}
+
+/* ===================== RENDER: GASTOS ===================== */
+function renderTxList(){
+  document.getElementById('gastosMonthLabel').textContent = monthLabelStr();
+  const list = currentMonthTx().sort((a,b)=> new Date(b.date)-new Date(a.date));
+  const box = document.getElementById('txList');
+  if(!list.length){ box.innerHTML = `<div class="empty">No hay gastos este mes todavía.</div>`; return; }
+  let grouped = {};
+  list.forEach(t=>{ (grouped[t.date] = grouped[t.date]||[]).push(t); });
+  let html = '';
+  Object.keys(grouped).sort((a,b)=>new Date(b)-new Date(a)).forEach(date=>{
+    const d = new Date(date+'T00:00:00');
+    html += `<div class="tx-day">${d.toLocaleDateString('es-CL',{weekday:'long', day:'numeric', month:'short'})}</div>`;
+    grouped[date].forEach(t=> html += txRowHtml(t));
+  });
+  box.innerHTML = html;
+}
+
+/* ===================== RENDER: SOBRES ===================== */
+function renderEnvelopeDetail(){
+  const income = setup.income || 0;
+  const spent = spentByEnvelope();
+  const box = document.getElementById('envelopeDetail');
+  box.innerHTML = ENV_DEFS.map(e=>{
+    const allocated = income * (setup.pct[e.k]/100);
+    const used = spent[e.k]||0;
+    const remaining = allocated - used;
+    const pct = allocated>0 ? Math.min((used/allocated)*100,100) : 0;
+    const over = used > allocated && allocated>0;
+    return `<div class="card">
+      <h3 style="display:flex; align-items:center; gap:8px;"><i style="width:10px;height:10px;border-radius:50%;background:${e.color};display:inline-block;"></i>${e.name} · ${setup.pct[e.k]}%</h3>
+      <div class="track" style="height:14px; margin-bottom:8px;"><div class="fill" style="width:${pct}%; background:${over?'#9C4331':e.color};"></div></div>
+      <div style="display:flex; justify-content:space-between; font-size:12.5px;">
+        <span>Gastado: <b class="mono">${fmt(used)}</b></span>
+        <span>${over?'Excedido en':'Disponible:'} <b class="mono" style="color:${over?'var(--rust)':'var(--green-deep)'};">${fmt(Math.abs(remaining))}</b></span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* edit envelopes modal */
+let editPct = {};
+function openEditEnvelopes(){
+  editPct = {...setup.pct};
+  const box = document.getElementById('editSliders');
+  box.innerHTML = ENV_DEFS.map(e=>`
+    <div class="slider-item" style="margin-bottom:14px;">
+      <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:13.5px; font-weight:600;">
+        <span style="display:flex; align-items:center; gap:8px;"><i style="width:10px;height:10px;border-radius:50%;background:${e.color};display:inline-block;"></i>${e.name}</span>
+        <span class="mono" id="editVal-${e.k}">${editPct[e.k]}%</span>
+      </div>
+      <input type="range" min="0" max="100" value="${editPct[e.k]}" id="editSl-${e.k}" style="width:100%; accent-color:${e.color};">
+    </div>
+  `).join('');
+  ENV_DEFS.forEach(e=>{
+    document.getElementById('editSl-'+e.k).addEventListener('input', (ev)=>{
+      editPct[e.k] = parseInt(ev.target.value);
+      document.getElementById('editVal-'+e.k).textContent = editPct[e.k]+'%';
+      updateDonut('editDonut','editDonutTotal', editPct, 'editAllocWarn');
+    });
+  });
+  updateDonut('editDonut','editDonutTotal', editPct, 'editAllocWarn');
+  openModal('envModalBg');
+}
+function saveEnvelopes(){
+  setup.pct = {...editPct};
+  saveSetup(setup);
+  closeModal('envModalBg');
+  refreshAll();
+}
+
+/* ===================== AJUSTES ===================== */
+function saveIncome(){
+  setup.income = parseFloat(document.getElementById('setIncome').value) || 0;
+  saveSetup(setup);
+  refreshAll();
+  alert('Ingreso actualizado.');
+}
+function saveCushion(){
+  setup.cushionMonths = parseFloat(document.getElementById('setCushion').value) || 0;
+  saveSetup(setup);
+  renderAjustes();
+  alert('Meta de colchón actualizada.');
+}
+function renderAjustes(){
+  document.getElementById('setIncome').value = setup.income || '';
+  document.getElementById('setCushion').value = setup.cushionMonths || 4;
+  const essentials = (setup.income||0) * (setup.pct.esenciales/100);
+  document.getElementById('cushionGoalOut').textContent = fmt(essentials * (setup.cushionMonths||4));
+}
+function exportData(){
+  const data = { setup, txList };
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'numeros-claros-backup.json';
+  a.click();
+}
+function resetAll(){
+  if(confirm('¿Seguro? Esto borra todos tus gastos y configuración.')){
+    localStorage.removeItem('nc_setup');
+    localStorage.removeItem('nc_tx');
+    location.reload();
+  }
+}
+
+/* ===================== LESSONS (CURSO TAB) ===================== */
+const LESSONS = [
+  {n:'01', t:'Diagnóstico: ¿a dónde se va tu plata?', body:'El 90% de la gente subestima sus gastos variables — no por mala fe, sino porque nunca los separó por categoría. Usa la calculadora para registrar cada gasto en su sobre correspondiente durante 30 días. Eso te da el diagnóstico real, no una sensación.'},
+  {n:'02', t:'El sistema de sobres digitales', body:'Divide tu ingreso en sobres con un propósito específico: Esenciales, Ahorro, Deudas y Disfrute. Ya no te preguntas "¿puedo gastar esto?" — el sobre te lo dice, porque tiene un límite. Ajusta los porcentajes en la pestaña Sobres cuando quieras.'},
+  {n:'03', t:'El colchón de emergencia', body:'Antes de invertir, arma un colchón de 3 a 6 meses de tus gastos esenciales, en una cuenta aparte. Configura tu meta en Ajustes y sigue tu avance dentro del sobre de Ahorro.'},
+  {n:'04', t:'Automatizar', body:'El mismo día que te llega la plata, sepárala en sus sobres — antes de que se pierda en el día a día. Programa transferencias automáticas a tu cuenta de ahorro apenas te paguen.'},
+  {n:'05', t:'Revisión mensual', body:'Una vez al mes revisa: ¿algún sobre se quedó corto siempre? Ajusta el porcentaje. ¿El colchón sigue creciendo? ¿Hay gastos fijos nuevos sin sobre asignado? La app te muestra el resumen del mes en la pestaña Inicio.'},
+];
+function renderLessons(){
+  const box = document.getElementById('lessons');
+  box.innerHTML = LESSONS.map((l,i)=>`
+    <div class="lesson" id="lesson-${i}">
+      <div class="lesson-head" onclick="toggleLesson(${i})">
+        <span class="lesson-num">${l.n}</span>
+        <span class="lesson-title">${l.t}</span>
+        <span class="lesson-plus">+</span>
+      </div>
+      <div class="lesson-body"><div class="lesson-body-inner">${l.body}</div></div>
+    </div>
+  `).join('');
+}
+function toggleLesson(i){
+  const item = document.getElementById('lesson-'+i);
+  const body = item.querySelector('.lesson-body');
+  const isOpen = item.classList.contains('open');
+  document.querySelectorAll('.lesson').forEach(l=>{ l.classList.remove('open'); l.querySelector('.lesson-body').style.maxHeight=null; });
+  if(!isOpen){ item.classList.add('open'); body.style.maxHeight = body.scrollHeight+'px'; }
+}
+
+/* ===================== INIT ===================== */
+function refreshAll(){ renderInicio(); renderTxList(); renderEnvelopeDetail(); renderAjustes(); }
+function initApp(){
+  renderLessons();
+  refreshAll();
+}
+
+if(setup){
+  document.getElementById('onb').style.display = 'none';
+  initApp();
+} else {
+  document.getElementById('onb').style.display = 'flex';
+}
+
+/* ===================== PWA INSTALL ===================== */
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e)=>{
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('installBanner').classList.add('show');
+});
+function promptInstall(){
+  if(deferredPrompt){ deferredPrompt.prompt(); deferredPrompt = null; document.getElementById('installBanner').classList.remove('show'); }
+}
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
